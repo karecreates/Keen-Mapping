@@ -1,0 +1,94 @@
+.zip-details {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
+}
+
+.zip-details__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.zip-details__product {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.zip-details__title {
+  margin: 0.15rem 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.zip-details__city {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.zip-details__close {
+  appearance: none;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text);
+}
+
+.zip-details__close:hover {
+  background: var(--border);
+}
+
+.zip-details__close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.zip-details__list {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.zip-details__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  padding: 0.4rem 0.45rem;
+  border-radius: 6px;
+}
+
+.zip-details__row dt {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.zip-details__row dd {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.zip-details__row.is-highlighted {
+  background: var(--accent-wash);
+}
+
+.zip-details__row.is-highlighted dt,
+.zip-details__row.is-highlighted dd {
+  color: var(--accent-ink);
+}

@@ -1,0 +1,38 @@
+.data-status {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.data-status p {
+  margin: 0 0 0.25rem;
+}
+
+.data-status strong {
+  color: var(--text);
+  font-weight: 650;
+}
+
+.data-status__details {
+  margin-top: 0.35rem;
+}
+
+.data-status__details summary {
+  cursor: pointer;
+  color: var(--text);
+}
+
+.data-status__details summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.data-status__hint {
+  margin-top: 0.35rem !important;
+}
+
+.data-status__zips {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.7rem;
+  word-break: break-word;
+}

@@ -1,0 +1,9 @@
+{
+  "generatedAt": "2026-07-30T17:45:04.079Z",
+  "spreadsheetZipCount": 527,
+  "geometryZipCount": 527,
+  "matchedZipCount": 527,
+  "unmatchedSpreadsheetZips": [],
+  "geometryZipsWithoutSpreadsheetData": [],
+  "note": "Some postal ZIP codes may not have a matching Census ZCTA polygon. No polygons were invented for unmatched ZIPs."
+}

@@ -1,0 +1,66 @@
+:root {
+  --bg: #eef3ef;
+  --bg-accent: #d9e5dc;
+  --surface: #ffffff;
+  --surface-2: #f3f6f4;
+  --text: #14201a;
+  --muted: #5b6b62;
+  --border: #d5ddd7;
+  --accent: #1f6b45;
+  --accent-ink: #145234;
+  --accent-soft: #9fc5ae;
+  --accent-wash: #e6f2eb;
+  --danger: #9f1d1d;
+  --danger-wash: #fdecec;
+  --shadow: 0 10px 30px rgba(20, 32, 26, 0.08);
+  --radius: 14px;
+  --font: "proxima-nova", sans-serif;
+  font-family: var(--font);
+  line-height: 1.45;
+  font-weight: 400;
+  font-style: normal;
+  color: var(--text);
+  background:
+    radial-gradient(1200px 500px at 10% -10%, #d7ebe0 0%, transparent 55%),
+    radial-gradient(900px 420px at 100% 0%, #cfe0f2 0%, transparent 50%),
+    var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+  font-family: var(--font);
+}
+
+body {
+  min-width: 320px;
+  overflow-x: hidden;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font: inherit;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  background: var(--surface-2);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
