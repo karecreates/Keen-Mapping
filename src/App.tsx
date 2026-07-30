@@ -5,14 +5,16 @@ import { MapLegend } from "./components/MapLegend";
 import { ZipDetails } from "./components/ZipDetails";
 import { ZipSearch } from "./components/ZipSearch";
 import { DataStatus } from "./components/DataStatus";
+import { PasswordGate } from "./components/PasswordGate";
 import { classifyMetric } from "./lib/classifications";
 import { indexRecordsByZip, normalizeZip } from "./lib/mapJoin";
+import { isAccessGranted } from "./lib/accessAuth";
 import { useMapData } from "./hooks/useMapData";
 import { readMapsEnv, useGoogleMap } from "./hooks/useGoogleMap";
 import type { MetricKey, ProductKey } from "./types/mapData";
 import "./App.css";
 
-function App() {
+function MapApp() {
   const {
     geojson,
     diagnostics,
@@ -133,7 +135,6 @@ function App() {
 
         <main className="app-main">
           <div className="map-stage">
-            {/* Canvas stays mounted so the Maps loader can attach after env is ready */}
             <div className="colorado-map">
               <div
                 ref={containerRef}
@@ -222,6 +223,16 @@ function App() {
       </div>
     </div>
   );
+}
+
+function App() {
+  const [granted, setGranted] = useState(() => isAccessGranted());
+
+  if (!granted) {
+    return <PasswordGate onSuccess={() => setGranted(true)} />;
+  }
+
+  return <MapApp />;
 }
 
 export default App;
