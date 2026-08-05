@@ -17,6 +17,7 @@ import {
   SELECTED_STYLE,
 } from "../config/colors";
 import { getMetricConfig } from "../config/metrics";
+import { mountFocusMarkets } from "../lib/focusMarketOverlay";
 import { indexRecordsByZip, normalizeZip } from "../lib/mapJoin";
 
 function boundsToPadded(
@@ -156,6 +157,11 @@ export function ColoradoMap({
       statesLayer.setMap(null);
       statesLayerRef.current = null;
     };
+  }, [map]);
+
+  // Focus market pins + collision-aware callout labels
+  useEffect(() => {
+    return mountFocusMarkets(map);
   }, [map]);
 
   useEffect(() => {

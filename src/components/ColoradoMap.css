@@ -62,3 +62,46 @@
 .colorado-map__tooltip-metric strong {
   font-variant-numeric: tabular-nums;
 }
+
+/* Focus market overlays (rendered into Google Maps floatPane) */
+.focus-market {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.focus-market__pin {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  width: 34px;
+  height: 34px;
+  transform: translate(-50%, -100%);
+  filter: drop-shadow(0 2px 5px rgba(15, 23, 42, 0.28));
+}
+
+.focus-market__label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 0.22rem 0.45rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(62, 111, 126, 0.28);
+  color: #264f59;
+  font-family: "proxima-nova", sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  white-space: nowrap;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.14);
+  /* Default: centered under pin tip; JS updates transform for deconfliction */
+  transform: translate(-50%, 6px);
+}
