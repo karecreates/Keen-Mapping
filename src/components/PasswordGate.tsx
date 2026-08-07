@@ -49,7 +49,8 @@ export function PasswordGate({ onSuccess }: PasswordGateProps) {
         <p className="password-gate__eyebrow">Private preview</p>
         <h1 className="password-gate__title">Geographic Insights</h1>
         <p className="password-gate__subtitle">
-          Enter the access password to open the Colorado ZIP mapping tool.
+          Enter the access password to open the ZIP mapping tool for Colorado,
+          California, and Oregon.
         </p>
 
         <form className="password-gate__form" onSubmit={handleSubmit}>

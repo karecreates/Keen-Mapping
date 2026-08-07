@@ -1,31 +1,30 @@
 #!/usr/bin/env node
 /**
- * Build-time Excel → JSON preparation for Colorado ZIP choropleth maps.
+ * Build-time Excel → JSON preparation for state ZIP choropleth maps.
  * Never recalculates Columns H–K; uses stored cell values only.
+ *
+ * Usage:
+ *   node scripts/prepare-map-data.mjs            # all states
+ *   node scripts/prepare-map-data.mjs --state=CA
+ *   node scripts/prepare-map-data.mjs CO OR
  */
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import XLSX from "xlsx";
+import { STATES, parseStateArgs } from "./state-config.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 const DATA_DIR = path.join(ROOT, "public", "data");
 
-const WORKBOOK_CANDIDATES = [
-  path.join(DATA_DIR, "Colorado Filtered - KOL Geographic Insights (2025)(1).xlsx"),
-  path.join(DATA_DIR, "Colorado Filtered - KOL Geographic Insights (2025).xlsx"),
-  path.join(ROOT, "Colorado Filtered - KOL Geographic Insights (2025)(1).xlsx"),
-  path.join(ROOT, "Colorado Filtered - KOL Geographic Insights (2025).xlsx"),
-  path.join(ROOT, "src", "data", "Colorado Filtered - KOL Geographic Insights (2025)(1).xlsx"),
-  path.join(ROOT, "src", "data", "Colorado Filtered - KOL Geographic Insights (2025).xlsx"),
-];
-
-const EXPECTED_CO_COUNT = 527;
-
-function findWorkbook() {
-  for (const candidate of WORKBOOK_CANDIDATES) {
-    if (fs.existsSync(candidate)) return candidate;
+function findWorkbook(state) {
+  const dirs = [DATA_DIR, ROOT, path.join(ROOT, "src", "data")];
+  for (const dir of dirs) {
+    for (const name of state.workbooks) {
+      const candidate = path.join(dir, name);
+      if (fs.existsSync(candidate)) return candidate;
+    }
   }
   return null;
 }
@@ -34,7 +33,6 @@ function toZip(value) {
   if (value === null || value === undefined || value === "") return null;
   const asString = String(value).trim();
   if (!asString) return null;
-  // Handle numeric Excel ZIPs (e.g. 8051 → "08051" is wrong for CO; pad to 5)
   const numeric = Number(asString);
   if (!Number.isNaN(numeric) && Number.isFinite(numeric) && !asString.includes("-")) {
     return String(Math.trunc(numeric)).padStart(5, "0");
@@ -53,6 +51,24 @@ function toNumber(value) {
   return Number.isFinite(n) ? n : null;
 }
 
+/** Trim Excel header keys so trailing-space / typo variants resolve cleanly. */
+function normalizeRow(row) {
+  const out = {};
+  for (const [key, value] of Object.entries(row)) {
+    out[String(key).trim()] = value;
+  }
+  return out;
+}
+
+function firstNumber(row, keys) {
+  for (const key of keys) {
+    if (row[key] !== undefined && row[key] !== null && row[key] !== "") {
+      return toNumber(row[key]);
+    }
+  }
+  return null;
+}
+
 function missingByField(rows) {
   const fields = [
     "state",
@@ -69,7 +85,9 @@ function missingByField(rows) {
   ];
   const result = {};
   for (const field of fields) {
-    result[field] = rows.filter((r) => r[field] === null || r[field] === undefined || r[field] === "").length;
+    result[field] = rows.filter(
+      (r) => r[field] === null || r[field] === undefined || r[field] === ""
+    ).length;
   }
   return result;
 }
@@ -83,19 +101,21 @@ function findDuplicates(rows) {
   }
   const duplicates = [];
   for (const [zip, sourceRows] of seen) {
-    if (sourceRows.length > 1) {
-      duplicates.push({ zip, sourceRows });
-    }
+    if (sourceRows.length > 1) duplicates.push({ zip, sourceRows });
   }
   return duplicates;
 }
 
-/**
- * @param {XLSX.WorkSheet} worksheet
- * @param {{ customers: string, units: string, spend: string, product: string }} columnMap
- */
-function parseSheet(worksheet, columnMap) {
-  // range: 3 → header is Excel row 4 (0-based index 3)
+function resolveSheet(workbook, candidates, label) {
+  for (const name of candidates) {
+    if (workbook.Sheets[name]) return { name, sheet: workbook.Sheets[name] };
+  }
+  throw new Error(
+    `Worksheet for ${label} not found. Tried: ${candidates.map((n) => JSON.stringify(n)).join(", ")}`
+  );
+}
+
+function parseSheet(worksheet, columnMap, state) {
   const rawRows = XLSX.utils.sheet_to_json(worksheet, {
     range: 3,
     raw: true,
@@ -104,32 +124,39 @@ function parseSheet(worksheet, columnMap) {
 
   const records = [];
   let missingZips = 0;
+  const code = state.code;
 
   for (let i = 0; i < rawRows.length; i++) {
-    const row = rawRows[i];
-    // Excel row number: header is row 4, first data is row 5 → index 0 → row 5
+    const row = normalizeRow(rawRows[i]);
     const sourceRow = i + 5;
 
-    if (String(row.State ?? "").trim().toUpperCase() !== "CO") {
-      continue;
-    }
+    if (String(row.State ?? "").trim().toUpperCase() !== code) continue;
 
     const zip = toZip(row.ZIP);
     if (!zip) missingZips += 1;
 
     records.push({
-      state: String(row.State ?? "").trim().toUpperCase(),
+      state: code,
       zip,
-      city: row["City or Metropolitan Area"] == null ? null : String(row["City or Metropolitan Area"]).trim(),
+      city:
+        row["City or Metropolitan Area"] == null
+          ? null
+          : String(row["City or Metropolitan Area"]).trim(),
       population: toNumber(row.Population),
       customers: toNumber(row[columnMap.customers]),
       units: toNumber(row[columnMap.units]),
       spend: toNumber(row[columnMap.spend]),
-      // Preserve supplied G–K values exactly — never recalculate
-      coSpendShare: toNumber(row["% of Total CO Spend"]),
-      localPenetration: toNumber(row["Local Penetration"]),
-      top10Penetration: toNumber(row["Top 10 Penetration"]),
-      statePenetration: toNumber(row["State Penetration"]),
+      // Preserve supplied G–K values — never recalculate
+      coSpendShare: firstNumber(row, state.spendShareKeys),
+      localPenetration: firstNumber(row, [
+        "Local Penetration",
+        "Local Pentration",
+      ]),
+      top10Penetration: firstNumber(row, ["Top 10 Penetration"]),
+      statePenetration: firstNumber(row, [
+        "State Penetration",
+        "State Pentration",
+      ]),
       sourceRow,
       product: columnMap.product,
     });
@@ -138,64 +165,61 @@ function parseSheet(worksheet, columnMap) {
   return { records, missingZips };
 }
 
-function summarize(label, records, missingZips) {
+function summarize(label, records, missingZips, state) {
   const zeroSpend = records.filter((r) => r.spend === 0).length;
   const nonzeroSpend = records.filter((r) => r.spend !== null && r.spend !== 0).length;
   const duplicates = findDuplicates(records);
   const missing = missingByField(records);
+  const spendShareSum = records.reduce((sum, r) => sum + (r.coSpendShare ?? 0), 0);
 
-  const coSpendSum = records.reduce((sum, r) => sum + (r.coSpendShare ?? 0), 0);
-  if (Math.abs(coSpendSum - 1) > 0.02) {
+  if (Math.abs(spendShareSum - 1) > 0.02) {
     console.warn(
-      `[warn] ${label}: sum of supplied % of Total CO Spend is ${coSpendSum.toFixed(6)} (expected ~1.0). ` +
-        `This is a source-data observation only — values are NOT normalized.`
+      `[warn] ${label}: sum of supplied % of Total ${state.code} Spend is ${spendShareSum.toFixed(6)} (expected ~1.0). ` +
+        `Source-data observation only — values are NOT normalized.`
     );
   }
 
-  if (records.length !== EXPECTED_CO_COUNT) {
+  if (records.length !== state.expectedCount) {
     console.warn(
-      `[warn] ${label}: expected ~${EXPECTED_CO_COUNT} Colorado records, got ${records.length}.`
+      `[warn] ${label}: expected ~${state.expectedCount} ${state.name} records, got ${records.length}.`
     );
   }
 
-  console.log(`\n=== ${label} ===`);
-  console.log(`Colorado records: ${records.length}`);
+  console.log(`\n=== ${state.code} · ${label} ===`);
+  console.log(`${state.name} records: ${records.length}`);
   console.log(`Zero-spend ZIPs: ${zeroSpend}`);
   console.log(`Nonzero-spend ZIPs: ${nonzeroSpend}`);
   console.log(`Missing ZIP values: ${missingZips}`);
   console.log(`Duplicate ZIP values: ${duplicates.length}`);
   if (duplicates.length) {
-    console.error("Duplicate ZIP report:");
     for (const d of duplicates) {
       console.error(`  ZIP ${d.zip} appears in Excel rows: ${d.sourceRows.join(", ")}`);
     }
   }
-  console.log("Missing values by field:", JSON.stringify(missing, null, 2));
-  console.log(`Sum of % of Total CO Spend: ${coSpendSum.toFixed(6)}`);
+  console.log(`Sum of % of Total ${state.code} Spend: ${spendShareSum.toFixed(6)}`);
 
-  return { zeroSpend, nonzeroSpend, duplicates, missing, coSpendSum };
+  return { zeroSpend, nonzeroSpend, duplicates, missing, spendShareSum };
 }
 
-function main() {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+function prepareState(code) {
+  const state = STATES[code];
+  const outDir = path.join(DATA_DIR, state.slug);
+  fs.mkdirSync(outDir, { recursive: true });
 
-  const workbookPath = findWorkbook();
+  const workbookPath = findWorkbook(state);
   if (!workbookPath) {
     console.error(
-      "ERROR: Excel workbook not found.\n" +
-        "Place the file at one of:\n" +
-        WORKBOOK_CANDIDATES.map((p) => `  - ${p}`).join("\n")
+      `ERROR: ${state.name} Excel workbook not found.\n` +
+        `Looked for: ${state.workbooks.join(", ")}\n` +
+        `in public/data/, project root, or src/data/.`
     );
     process.exit(1);
   }
 
+  console.log(`\n######## ${state.name} (${state.code}) ########`);
   console.log(`Reading workbook: ${workbookPath}`);
 
-  // Prefer storing under the canonical public/data path
-  const canonical = path.join(
-    DATA_DIR,
-    "Colorado Filtered - KOL Geographic Insights (2025)(1).xlsx"
-  );
+  const canonical = path.join(DATA_DIR, state.workbooks[0]);
   if (path.resolve(workbookPath) !== path.resolve(canonical)) {
     fs.copyFileSync(workbookPath, canonical);
     console.log(`Copied workbook to: ${canonical}`);
@@ -207,45 +231,61 @@ function main() {
     raw: true,
   });
 
-  if (!workbook.Sheets["data"]) {
-    console.error('ERROR: Worksheet "data" (Outdoor / Performance) not found.');
+  const outdoorSheet = resolveSheet(workbook, state.outdoorSheets, "Outdoor");
+  const utilitySheet = resolveSheet(workbook, state.utilitySheets, "Utility");
+  console.log(`Outdoor sheet: "${outdoorSheet.name}"`);
+  console.log(`Utility sheet: "${utilitySheet.name}"`);
+
+  const outdoorParsed = parseSheet(
+    outdoorSheet.sheet,
+    {
+      customers: "FanGroup1Fans",
+      units: "FanGroup1Units",
+      spend: "FanGroup1Dollars",
+      product: "outdoor",
+    },
+    state
+  );
+
+  const utilityParsed = parseSheet(
+    utilitySheet.sheet,
+    {
+      customers: "FanGroup2Fans",
+      units: "FanGroup2Units",
+      spend: "FanGroup2Dollars",
+      product: "utility",
+    },
+    state
+  );
+
+  const outdoorSummary = summarize(
+    "Outdoor / Performance",
+    outdoorParsed.records,
+    outdoorParsed.missingZips,
+    state
+  );
+  const utilitySummary = summarize(
+    "Utility",
+    utilityParsed.records,
+    utilityParsed.missingZips,
+    state
+  );
+
+  if (outdoorSummary.duplicates.length || utilitySummary.duplicates.length) {
+    console.error(`\nFATAL: Duplicate ${state.name} ZIPs detected. Stopping.`);
     process.exit(1);
   }
-  if (!workbook.Sheets["Utility Data"]) {
-    console.error('ERROR: Worksheet "Utility Data" not found.');
-    process.exit(1);
-  }
-
-  const outdoorParsed = parseSheet(workbook.Sheets["data"], {
-    customers: "FanGroup1Fans",
-    units: "FanGroup1Units",
-    spend: "FanGroup1Dollars",
-    product: "outdoor",
-  });
-
-  const utilityParsed = parseSheet(workbook.Sheets["Utility Data"], {
-    customers: "FanGroup2Fans",
-    units: "FanGroup2Units",
-    spend: "FanGroup2Dollars",
-    product: "utility",
-  });
-
-  const outdoorSummary = summarize("Outdoor / Performance", outdoorParsed.records, outdoorParsed.missingZips);
-  const utilitySummary = summarize("Utility", utilityParsed.records, utilityParsed.missingZips);
-
-  if (outdoorSummary.duplicates.length > 0 || utilitySummary.duplicates.length > 0) {
-    console.error("\nFATAL: Duplicate Colorado ZIPs detected. Stopping preprocessing.");
-    process.exit(1);
-  }
-
-  const outdoorOut = path.join(DATA_DIR, "outdoor.json");
-  const utilityOut = path.join(DATA_DIR, "utility.json");
 
   const meta = {
     generatedAt: new Date().toISOString(),
+    state: state.code,
+    stateName: state.name,
     sourceWorkbook: path.basename(workbookPath),
     note: "Columns H–K are preserved as supplied. No recalculation was performed.",
   };
+
+  const outdoorOut = path.join(outDir, "outdoor.json");
+  const utilityOut = path.join(outDir, "utility.json");
 
   fs.writeFileSync(
     outdoorOut,
@@ -255,12 +295,13 @@ function main() {
         label: "Outdoor / Performance",
         meta,
         diagnostics: {
+          stateRecords: outdoorParsed.records.length,
           coloradoRecords: outdoorParsed.records.length,
           zeroSpend: outdoorSummary.zeroSpend,
           nonzeroSpend: outdoorSummary.nonzeroSpend,
           missingZips: outdoorParsed.missingZips,
           missingByField: outdoorSummary.missing,
-          coSpendShareSum: outdoorSummary.coSpendSum,
+          coSpendShareSum: outdoorSummary.spendShareSum,
         },
         records: outdoorParsed.records,
       },
@@ -277,12 +318,13 @@ function main() {
         label: "Utility",
         meta,
         diagnostics: {
+          stateRecords: utilityParsed.records.length,
           coloradoRecords: utilityParsed.records.length,
           zeroSpend: utilitySummary.zeroSpend,
           nonzeroSpend: utilitySummary.nonzeroSpend,
           missingZips: utilityParsed.missingZips,
           missingByField: utilitySummary.missing,
-          coSpendShareSum: utilitySummary.coSpendSum,
+          coSpendShareSum: utilitySummary.spendShareSum,
         },
         records: utilityParsed.records,
       },
@@ -291,8 +333,16 @@ function main() {
     )
   );
 
-  console.log(`\nWrote ${outdoorOut}`);
+  console.log(`Wrote ${outdoorOut}`);
   console.log(`Wrote ${utilityOut}`);
+}
+
+function main() {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+  const { codes } = parseStateArgs();
+  for (const code of codes) {
+    prepareState(code);
+  }
 }
 
 main();

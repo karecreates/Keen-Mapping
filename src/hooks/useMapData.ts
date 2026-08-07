@@ -4,6 +4,8 @@ import type {
   ProductDataset,
   ProductKey,
 } from "../types/mapData";
+import type { StateKey } from "../config/states";
+import { STATES, stateDataPaths } from "../config/states";
 import { validateDataset } from "../lib/validation";
 
 export interface MapDataState {
@@ -15,7 +17,7 @@ export interface MapDataState {
   error: string | null;
 }
 
-export function useMapData() {
+export function useMapData(stateKey: StateKey) {
   const [state, setState] = useState<MapDataState>({
     outdoor: null,
     utility: null,
@@ -27,22 +29,31 @@ export function useMapData() {
 
   useEffect(() => {
     let cancelled = false;
+    const paths = stateDataPaths(stateKey);
+    const stateName = STATES[stateKey].name;
 
     async function load() {
-      setState((s) => ({ ...s, loading: true, error: null }));
+      setState((s) => ({
+        ...s,
+        outdoor: null,
+        utility: null,
+        geojson: null,
+        diagnostics: null,
+        loading: true,
+        error: null,
+      }));
       try {
         const [outdoorRes, utilityRes, geoRes, diagRes] = await Promise.all([
-          fetch("/data/outdoor.json"),
-          fetch("/data/utility.json"),
-          fetch("/data/colorado-zctas.geojson"),
-          fetch("/data/geometry-diagnostics.json"),
+          fetch(paths.outdoor),
+          fetch(paths.utility),
+          fetch(paths.geojson),
+          fetch(paths.diagnostics),
         ]);
 
         if (!outdoorRes.ok || !utilityRes.ok) {
           throw new Error(
-            "Missing generated JSON data. Place the Excel workbook at " +
-              "`public/data/Colorado Filtered - KOL Geographic Insights (2025)(1).xlsx` " +
-              "and run `npm run prepare-data`."
+            `Missing generated ${stateName} JSON data. Place the Excel workbook in the project root ` +
+              `and run \`npm run prepare-data -- --state=${stateKey}\`.`
           );
         }
 
@@ -54,13 +65,13 @@ export function useMapData() {
           geojson = (await geoRes.json()) as GeoJSON.FeatureCollection;
           if (!geojson.features?.length) {
             throw new Error(
-              "Colorado ZCTA GeoJSON loaded but contains no features. Run `npm run fetch-geometry`."
+              `${stateName} ZCTA GeoJSON loaded but contains no features. Run \`npm run fetch-geometry -- --state=${stateKey}\`.`
             );
           }
         } else {
           throw new Error(
-            "Missing `/data/colorado-zctas.geojson`. Run `npm run fetch-geometry` " +
-              "(or `npm run prepare-map`) to download Census ZCTA polygons."
+            `Missing \`${paths.geojson}\`. Run \`npm run fetch-geometry -- --state=${stateKey}\` ` +
+              `(or \`npm run prepare-map\`) to download Census ZCTA polygons.`
           );
         }
 
@@ -70,8 +81,8 @@ export function useMapData() {
         }
 
         for (const warning of [
-          ...validateDataset(outdoor),
-          ...validateDataset(utility),
+          ...validateDataset(outdoor, stateKey),
+          ...validateDataset(utility, stateKey),
         ]) {
           console.warn(`[data] ${warning}`);
         }
@@ -101,7 +112,7 @@ export function useMapData() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [stateKey]);
 
   const getDataset = useCallback(
     (product: ProductKey): ProductDataset | null => {

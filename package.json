@@ -7,9 +7,9 @@
     "node": ">=20"
   },
   "scripts": {
-    "prepare-data": "node scripts/prepare-map-data.mjs",
-    "fetch-geometry": "node scripts/fetch-colorado-zctas.mjs",
-    "fetch-geometry:force": "node scripts/fetch-colorado-zctas.mjs --force",
+    "prepare-data": "node scripts/prepare-map-data.mjs --all",
+    "fetch-geometry": "node scripts/fetch-zctas.mjs --all",
+    "fetch-geometry:force": "node scripts/fetch-zctas.mjs --all --force",
     "prepare-map": "npm run prepare-data && npm run fetch-geometry",
     "dev": "vite",
     "build": "npm run prepare-data && tsc -b && vite build",

@@ -1,0 +1,10 @@
+{
+  "generatedAt": "2026-08-07T19:43:41.148Z",
+  "state": "CA",
+  "spreadsheetZipCount": 1800,
+  "geometryZipCount": 1800,
+  "matchedZipCount": 1800,
+  "unmatchedSpreadsheetZips": [],
+  "geometryZipsWithoutSpreadsheetData": [],
+  "note": "Some postal ZIP codes may not have a matching Census ZCTA polygon. No polygons were invented for unmatched ZIPs."
+}

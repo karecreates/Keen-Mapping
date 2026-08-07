@@ -16,7 +16,9 @@ import {
   NORMAL_STYLE,
   SELECTED_STYLE,
 } from "../config/colors";
+import { FOCUS_MARKETS_BY_STATE } from "../config/focusMarkets";
 import { getMetricConfig } from "../config/metrics";
+import { STATES, type StateKey } from "../config/states";
 import { mountFocusMarkets } from "../lib/focusMarketOverlay";
 import { indexRecordsByZip, normalizeZip } from "../lib/mapJoin";
 
@@ -44,6 +46,7 @@ interface TooltipState {
 
 interface ColoradoMapProps {
   map: google.maps.Map;
+  stateKey: StateKey;
   geojson: GeoJSON.FeatureCollection;
   records: ZipRecord[];
   product: ProductKey;
@@ -61,6 +64,7 @@ interface ColoradoMapProps {
  */
 export function ColoradoMap({
   map,
+  stateKey,
   geojson,
   records,
   product,
@@ -79,7 +83,9 @@ export function ColoradoMap({
   const featureIndex = useRef<Map<string, google.maps.Data.Feature>>(new Map());
 
   const byZip = useMemo(() => indexRecordsByZip(records), [records]);
-  const metricConfig = getMetricConfig(metric);
+  const metricConfig = getMetricConfig(metric, stateKey);
+  const outlineName = STATES[stateKey].outlineName;
+  const mapPins = FOCUS_MARKETS_BY_STATE[stateKey];
 
   const styleFeature = useCallback(
     (feature: google.maps.Data.Feature): google.maps.Data.StyleOptions => {
@@ -123,21 +129,25 @@ export function ColoradoMap({
     const statesLayer = new google.maps.Data({ map });
     statesLayerRef.current = statesLayer;
 
-    statesLayer.setStyle((feature) => {
-      const name = String(
-        feature.getProperty("name") ?? feature.getProperty("NAME") ?? ""
-      );
-      const isColorado = name.toLowerCase() === "colorado";
-      return {
-        fillColor: "#ffffff",
-        fillOpacity: 0,
-        strokeColor: isColorado ? "#0f172a" : "#475569",
-        strokeWeight: isColorado ? 2.75 : 2,
-        strokeOpacity: 1,
-        clickable: false,
-        zIndex: isColorado ? 5 : 0,
-      };
-    });
+    const applyStyle = () => {
+      statesLayer.setStyle((feature) => {
+        const name = String(
+          feature.getProperty("name") ?? feature.getProperty("NAME") ?? ""
+        );
+        const isActive = name.toLowerCase() === outlineName;
+        return {
+          fillColor: "#ffffff",
+          fillOpacity: 0,
+          strokeColor: isActive ? "#0f172a" : "#475569",
+          strokeWeight: isActive ? 2.75 : 2,
+          strokeOpacity: 1,
+          clickable: false,
+          zIndex: isActive ? 5 : 0,
+        };
+      });
+    };
+
+    applyStyle();
 
     void fetch("/data/us-states.geojson")
       .then((res) => {
@@ -147,6 +157,7 @@ export function ColoradoMap({
       .then((statesGeojson: GeoJSON.FeatureCollection) => {
         if (cancelled) return;
         statesLayer.addGeoJson(statesGeojson as unknown as object);
+        applyStyle();
       })
       .catch((err) => {
         console.warn("[maps] Could not load U.S. state outlines underlay:", err);
@@ -157,12 +168,12 @@ export function ColoradoMap({
       statesLayer.setMap(null);
       statesLayerRef.current = null;
     };
-  }, [map]);
+  }, [map, outlineName]);
 
-  // Focus market pins + collision-aware callout labels
+  // Focus market / store pins + collision-aware callout labels
   useEffect(() => {
-    return mountFocusMarkets(map);
-  }, [map]);
+    return mountFocusMarkets(map, mapPins);
+  }, [map, mapPins]);
 
   useEffect(() => {
     // Clear any prior features (React StrictMode remounts safely)
@@ -190,7 +201,7 @@ export function ColoradoMap({
     featureIndex.current = index;
     boundsRef.current = bounds;
 
-    // Pad the Colorado ZIP extent so neighboring U.S. state outlines stay in view
+    // Pad the ZIP extent so neighboring U.S. state outlines stay in view
     const padded = boundsToPadded(bounds, 0.85);
     map.fitBounds(padded, 28);
 

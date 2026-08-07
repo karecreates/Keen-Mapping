@@ -1,6 +1,7 @@
 import { GREEN_SEQUENCE, NO_DATA_COLOR } from "../config/colors";
 import { getSpendBuckets } from "../config/spendBuckets";
 import { getMetricConfig, PRODUCT_LABELS } from "../config/metrics";
+import type { StateKey } from "../config/states";
 import {
   formatCurrency,
   formatLegendPercentRange,
@@ -156,9 +157,10 @@ function buildSpendClassification(
 export function classifyMetric(
   records: ZipRecord[],
   product: ProductKey,
-  metric: MetricKey
+  metric: MetricKey,
+  stateKey: StateKey = "CO"
 ): ClassificationResult {
-  const config = getMetricConfig(metric);
+  const config = getMetricConfig(metric, stateKey);
 
   if (config.classification === "productSpend") {
     return buildSpendClassification(product, config.label);

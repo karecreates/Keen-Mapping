@@ -1,0 +1,10 @@
+{
+  "generatedAt": "2026-08-07T19:55:12.020Z",
+  "state": "OR",
+  "spreadsheetZipCount": 427,
+  "geometryZipCount": 427,
+  "matchedZipCount": 427,
+  "unmatchedSpreadsheetZips": [],
+  "geometryZipsWithoutSpreadsheetData": [],
+  "note": "Some postal ZIP codes may not have a matching Census ZCTA polygon. No polygons were invented for unmatched ZIPs."
+}

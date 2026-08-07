@@ -83,6 +83,17 @@
   filter: drop-shadow(0 2px 5px rgba(15, 23, 42, 0.28));
 }
 
+.focus-market--logo .focus-market__pin {
+  width: 72px;
+  height: 28px;
+  padding: 0.2rem 0.35rem;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(21, 21, 19, 0.14);
+  object-fit: contain;
+  box-sizing: content-box;
+}
+
 .focus-market__label {
   position: absolute;
   left: 0;

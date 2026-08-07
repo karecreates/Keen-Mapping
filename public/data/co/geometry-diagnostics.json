@@ -1,0 +1,10 @@
+{
+  "generatedAt": "2026-08-07T19:44:03.180Z",
+  "state": "CO",
+  "spreadsheetZipCount": 527,
+  "geometryZipCount": 527,
+  "matchedZipCount": 527,
+  "unmatchedSpreadsheetZips": [],
+  "geometryZipsWithoutSpreadsheetData": [],
+  "note": "Some postal ZIP codes may not have a matching Census ZCTA polygon. No polygons were invented for unmatched ZIPs."
+}

@@ -1,19 +1,27 @@
 import type { GeometryDiagnostics } from "../types/mapData";
+import type { StateKey } from "../config/states";
+import { STATES } from "../config/states";
 import { summarizeGeometryStatus } from "../lib/validation";
 import "./DataStatus.css";
 
 interface DataStatusProps {
+  stateKey: StateKey;
   diagnostics: GeometryDiagnostics | null;
   recordCount: number;
 }
 
-export function DataStatus({ diagnostics, recordCount }: DataStatusProps) {
+export function DataStatus({
+  stateKey,
+  diagnostics,
+  recordCount,
+}: DataStatusProps) {
   const status = summarizeGeometryStatus(diagnostics);
+  const stateName = STATES[stateKey].name;
 
   return (
     <div className="data-status" role="status">
       <p>
-        <strong>{recordCount}</strong> Colorado ZIPs in spreadsheet
+        <strong>{recordCount}</strong> {stateName} ZIPs in spreadsheet
       </p>
       <p className="data-status__geometry">{status.message}</p>
       {diagnostics && diagnostics.unmatchedSpreadsheetZips.length > 0 ? (

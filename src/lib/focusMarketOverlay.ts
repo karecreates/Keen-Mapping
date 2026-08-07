@@ -1,4 +1,4 @@
-import { FOCUS_MARKETS, type FocusMarket } from "../config/focusMarkets";
+import type { MapPin } from "../config/focusMarkets";
 
 interface LabelOffset {
   x: number;
@@ -6,7 +6,9 @@ interface LabelOffset {
 }
 
 interface MarketMarker {
-  market: FocusMarket;
+  market: MapPin;
+  pinWidth: number;
+  pinHeight: number;
   overlay: google.maps.OverlayView;
   getAnchor(): google.maps.Point | null;
   setLabelOffset(offset: LabelOffset): void;
@@ -14,12 +16,13 @@ interface MarketMarker {
 }
 
 type MarkerCtor = new (
-  market: FocusMarket,
+  market: MapPin,
   onReady: () => void
 ) => google.maps.OverlayView & {
   getAnchor(): google.maps.Point | null;
   setLabelOffset(offset: LabelOffset): void;
   getLabelSize(): { width: number; height: number };
+  getPinSize(): { width: number; height: number };
 };
 
 let MarkerClass: MarkerCtor | null = null;
@@ -38,14 +41,14 @@ function rectsOverlap(
 }
 
 const OFFSET_CANDIDATES: LabelOffset[] = [
-  { x: 0, y: 6 }, // below pin (default)
-  { x: 42, y: -18 }, // right
-  { x: -42, y: -18 }, // left
-  { x: 0, y: -52 }, // above
-  { x: 48, y: -48 }, // above-right
-  { x: -48, y: -48 }, // above-left
-  { x: 52, y: 8 }, // below-right
-  { x: -52, y: 8 }, // below-left
+  { x: 0, y: 6 },
+  { x: 42, y: -18 },
+  { x: -42, y: -18 },
+  { x: 0, y: -52 },
+  { x: 48, y: -48 },
+  { x: -48, y: -48 },
+  { x: 52, y: 8 },
+  { x: -52, y: 8 },
   { x: 70, y: -10 },
   { x: -70, y: -10 },
   { x: 0, y: -70 },
@@ -62,34 +65,41 @@ function getMarkerClass(): MarkerCtor {
 
   MarkerClass = class FocusMarketMarker extends google.maps.OverlayView {
     private position: google.maps.LatLng;
-    private name: string;
+    private market: MapPin;
     private onReady: () => void;
     private root: HTMLDivElement | null = null;
     private labelEl: HTMLSpanElement | null = null;
     private offset: LabelOffset = { x: 0, y: 6 };
+    private pinWidth: number;
+    private pinHeight: number;
 
-    constructor(market: FocusMarket, onReady: () => void) {
+    constructor(market: MapPin, onReady: () => void) {
       super();
       this.position = new google.maps.LatLng(market.lat, market.lng);
-      this.name = market.name;
+      this.market = market;
       this.onReady = onReady;
+      this.pinWidth = market.pinWidth ?? (market.variant === "logo" ? 72 : 34);
+      this.pinHeight = market.pinHeight ?? (market.variant === "logo" ? 28 : 34);
     }
 
     onAdd() {
       const root = document.createElement("div");
-      root.className = "focus-market";
-      root.title = this.name;
+      root.className =
+        this.market.variant === "logo"
+          ? "focus-market focus-market--logo"
+          : "focus-market";
+      root.title = this.market.name;
 
       const pin = document.createElement("img");
       pin.className = "focus-market__pin";
-      pin.src = "/beta_markerr.svg";
+      pin.src = this.market.pinSrc ?? "/beta_markerr.svg";
       pin.alt = "";
-      pin.width = 34;
-      pin.height = 34;
+      pin.width = this.pinWidth;
+      pin.height = this.pinHeight;
 
       const label = document.createElement("span");
       label.className = "focus-market__label";
-      label.textContent = this.name;
+      label.textContent = this.market.name;
 
       root.append(pin, label);
       this.root = root;
@@ -97,7 +107,6 @@ function getMarkerClass(): MarkerCtor {
       this.applyLabelOffset();
 
       this.getPanes()?.floatPane.appendChild(root);
-      // Allow layout so label size can be measured
       requestAnimationFrame(() => this.onReady());
     }
 
@@ -123,6 +132,10 @@ function getMarkerClass(): MarkerCtor {
       return projection.fromLatLngToDivPixel(this.position);
     }
 
+    getPinSize() {
+      return { width: this.pinWidth, height: this.pinHeight };
+    }
+
     setLabelOffset(offset: LabelOffset) {
       this.offset = offset;
       this.applyLabelOffset();
@@ -130,7 +143,7 @@ function getMarkerClass(): MarkerCtor {
 
     getLabelSize(): { width: number; height: number } {
       if (!this.labelEl) {
-        return { width: this.name.length * 7.2 + 18, height: 22 };
+        return { width: this.market.name.length * 7.2 + 18, height: 22 };
       }
       const rect = this.labelEl.getBoundingClientRect();
       return {
@@ -158,9 +171,9 @@ function resolveLabelOffsets(markers: MarketMarker[]) {
     const anchor = marker.getAnchor();
     if (!anchor) continue;
     pinRects.push({
-      left: anchor.x - 17,
-      top: anchor.y - 34,
-      right: anchor.x + 17,
+      left: anchor.x - marker.pinWidth / 2,
+      top: anchor.y - marker.pinHeight,
+      right: anchor.x + marker.pinWidth / 2,
       bottom: anchor.y,
     });
   }
@@ -210,8 +223,13 @@ function resolveLabelOffsets(markers: MarketMarker[]) {
   }
 }
 
-/** Mount all focus-market markers with collision-aware labels. Returns cleanup. */
-export function mountFocusMarkets(map: google.maps.Map): () => void {
+/** Mount map pins with collision-aware labels. Returns cleanup. */
+export function mountFocusMarkets(
+  map: google.maps.Map,
+  markets: MapPin[]
+): () => void {
+  if (!markets.length) return () => {};
+
   const Ctor = getMarkerClass();
   const markers: MarketMarker[] = [];
 
@@ -219,11 +237,14 @@ export function mountFocusMarkets(map: google.maps.Map): () => void {
     resolveLabelOffsets(markers);
   };
 
-  for (const market of FOCUS_MARKETS) {
+  for (const market of markets) {
     const overlay = new Ctor(market, relayout);
     overlay.setMap(map);
+    const pinSize = overlay.getPinSize();
     markers.push({
       market,
+      pinWidth: pinSize.width,
+      pinHeight: pinSize.height,
       overlay,
       getAnchor: () => overlay.getAnchor(),
       setLabelOffset: (offset) => overlay.setLabelOffset(offset),
@@ -233,8 +254,6 @@ export function mountFocusMarkets(map: google.maps.Map): () => void {
 
   const idleListener = map.addListener("idle", relayout);
   const zoomListener = map.addListener("zoom_changed", relayout);
-
-  // Initial pass after overlays attach
   window.setTimeout(relayout, 0);
 
   return () => {

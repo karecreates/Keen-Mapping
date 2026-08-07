@@ -4,7 +4,6 @@ export type MetricKey =
   | "spend"
   | "coSpendShare"
   | "localPenetration"
-  | "top10Penetration"
   | "statePenetration";
 
 export interface ZipRecord {
@@ -32,7 +31,10 @@ export interface ProductDataset {
     note: string;
   };
   diagnostics: {
-    coloradoRecords: number;
+    /** Preferred count field for any state */
+    stateRecords?: number;
+    /** Legacy alias kept for older Colorado JSON */
+    coloradoRecords?: number;
     zeroSpend: number;
     nonzeroSpend: number;
     missingZips: number;

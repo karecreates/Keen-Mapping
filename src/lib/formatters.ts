@@ -52,7 +52,6 @@ export function formatMetricValue(
     case "coSpendShare":
     case "localPenetration":
       return formatPercent2(value);
-    case "top10Penetration":
     case "statePenetration":
       return formatPercent4(value);
     default:

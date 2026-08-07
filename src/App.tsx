@@ -11,17 +11,26 @@ import { indexRecordsByZip, normalizeZip } from "./lib/mapJoin";
 import { isAccessGranted } from "./lib/accessAuth";
 import { useMapData } from "./hooks/useMapData";
 import { readMapsEnv, useGoogleMap } from "./hooks/useGoogleMap";
+import {
+  readStoredState,
+  storeSelectedState,
+  STATES,
+  type StateKey,
+} from "./config/states";
 import type { MetricKey, ProductKey } from "./types/mapData";
 import "./App.css";
 
 function MapApp() {
+  const [stateKey, setStateKey] = useState<StateKey>(() => readStoredState());
+  const stateConfig = STATES[stateKey];
+
   const {
     geojson,
     diagnostics,
     loading: dataLoading,
     error: dataError,
     getDataset,
-  } = useMapData();
+  } = useMapData(stateKey);
 
   const mapsConfig = useMemo(() => readMapsEnv(), []);
   const { map, ready: mapReady, error: mapError, containerRef } =
@@ -41,8 +50,8 @@ function MapApp() {
   const records = dataset?.records ?? [];
 
   const classification = useMemo(
-    () => classifyMetric(records, product, metric),
-    [records, product, metric]
+    () => classifyMetric(records, product, metric, stateKey),
+    [records, product, metric, stateKey]
   );
 
   const byZip = useMemo(() => indexRecordsByZip(records), [records]);
@@ -75,6 +84,14 @@ function MapApp() {
     setProduct(next);
   }, []);
 
+  const handleStateChange = useCallback((next: StateKey) => {
+    setStateKey(next);
+    storeSelectedState(next);
+    setSelectedZip(null);
+    setZoomRequest(null);
+    setStatusMessage("");
+  }, []);
+
   const handleResetView = useCallback(() => {
     setFitToken((t) => t + 1);
   }, []);
@@ -86,7 +103,7 @@ function MapApp() {
     <div className="app">
       <header className="app-header">
         <div className="app-header__copy">
-          <h1>Colorado ZIP Code E-Commerce Insights</h1>
+          <h1>{stateConfig.title}</h1>
           <p className="app-subtitle">
             Outdoor / Performance and Utility geographic performance
           </p>
@@ -99,8 +116,10 @@ function MapApp() {
       <div className="app-body">
         <aside className="app-sidebar">
           <MapControls
+            stateKey={stateKey}
             product={product}
             metric={metric}
+            onStateChange={handleStateChange}
             onProductChange={handleProductChange}
             onMetricChange={setMetric}
             onResetView={handleResetView}
@@ -118,6 +137,7 @@ function MapApp() {
           </div>
 
           <DataStatus
+            stateKey={stateKey}
             diagnostics={diagnostics}
             recordCount={records.length}
           />
@@ -126,6 +146,7 @@ function MapApp() {
             <ZipDetails
               open={Boolean(selectedRecord)}
               record={selectedRecord}
+              stateKey={stateKey}
               product={product}
               metric={metric}
               onClose={() => setSelectedZip(null)}
@@ -140,18 +161,19 @@ function MapApp() {
                 ref={containerRef}
                 className="colorado-map__canvas"
                 role="application"
-                aria-label="Interactive Colorado ZIP code choropleth map"
+                aria-label={`Interactive ${stateConfig.name} ZIP code choropleth map`}
                 aria-describedby="map-description"
               />
               <p className="colorado-map__sr-only" id="map-description">
-                Choropleth map of Colorado ZIP Code Tabulation Areas. Fill
-                colors represent the selected product line and metric. Click a
-                ZIP for details. Use the search field to find a ZIP by code or
-                city name.
+                Choropleth map of {stateConfig.name} ZIP Code Tabulation Areas.
+                Fill colors represent the selected product line and metric.
+                Click a ZIP for details. Use the search field to find a ZIP by
+                code or city name.
               </p>
               {geojson && mapReady && map ? (
                 <ColoradoMap
                   map={map}
+                  stateKey={stateKey}
                   geojson={geojson}
                   records={records}
                   product={product}
@@ -175,7 +197,7 @@ function MapApp() {
                 <div className="spinner" aria-hidden="true" />
                 <p>
                   {dataLoading
-                    ? "Loading Colorado map data…"
+                    ? `Loading ${stateConfig.name} map data…`
                     : "Initializing Google Maps…"}
                 </p>
               </div>
@@ -190,15 +212,12 @@ function MapApp() {
                 <p>{blockingError}</p>
                 <ul>
                   <li>
-                    Workbook path:{" "}
-                    <code>
-                      public/data/Colorado Filtered - KOL Geographic Insights
-                      (2025)(1).xlsx
-                    </code>
+                    Place the filtered Excel workbook in the project root, then
+                    run <code>npm run prepare-map</code>
                   </li>
                   <li>
-                    Run <code>npm run prepare-map</code> to generate JSON and
-                    geometry
+                    State data paths:{" "}
+                    <code>public/data/{stateConfig.slug}/</code>
                   </li>
                   <li>
                     Ensure <code>.env</code> has{" "}
@@ -216,6 +235,7 @@ function MapApp() {
         <ZipDetails
           open={Boolean(selectedRecord)}
           record={selectedRecord}
+          stateKey={stateKey}
           product={product}
           metric={metric}
           onClose={() => setSelectedZip(null)}
