@@ -14,8 +14,14 @@
   border: 1px solid var(--border);
 }
 
-.segmented--3 {
-  grid-template-columns: 1fr 1fr 1fr;
+.segmented--states {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (min-width: 360px) {
+  .segmented--states {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .segmented__btn {

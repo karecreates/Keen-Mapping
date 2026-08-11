@@ -1,0 +1,10 @@
+{
+  "generatedAt": "2026-08-11T21:26:31.999Z",
+  "state": "WA",
+  "spreadsheetZipCount": 605,
+  "geometryZipCount": 605,
+  "matchedZipCount": 605,
+  "unmatchedSpreadsheetZips": [],
+  "geometryZipsWithoutSpreadsheetData": [],
+  "note": "Some postal ZIP codes may not have a matching Census ZCTA polygon. No polygons were invented for unmatched ZIPs."
+}

@@ -43,6 +43,19 @@ export const STATES = {
       "Oregon Filtered - KOL Geographic Insights (2025)(1).xlsx",
     ],
   },
+  WA: {
+    code: "WA",
+    name: "Washington",
+    slug: "wa",
+    expectedCount: 605,
+    spendShareKeys: ["% of Total WA Spend"],
+    outdoorSheets: ["Outdoor", "data"],
+    utilitySheets: ["Utility", "Utility Data"],
+    workbooks: [
+      "Washington Filtered - KOL Geographic Insights (2025).xlsx",
+      "Washington Filtered - KOL Geographic Insights (2025)(1).xlsx",
+    ],
+  },
 };
 
 export const STATE_CODES = Object.keys(STATES);

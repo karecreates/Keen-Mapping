@@ -122,6 +122,7 @@ export const FOCUS_MARKETS_BY_STATE: Record<StateKey, MapPin[]> = {
       pinHeight: 28,
     },
   ],
+  WA: [],
 };
 
 /** @deprecated Use FOCUS_MARKETS_BY_STATE.CO */

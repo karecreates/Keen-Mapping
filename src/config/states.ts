@@ -1,10 +1,10 @@
-export type StateKey = "CO" | "CA" | "OR";
+export type StateKey = "CO" | "CA" | "OR" | "WA";
 
 export interface StateConfig {
   key: StateKey;
   code: StateKey;
   name: string;
-  slug: "co" | "ca" | "or";
+  slug: "co" | "ca" | "or" | "wa";
   /** GeoJSON feature name in us-states.geojson */
   outlineName: string;
   center: { lat: number; lng: number };
@@ -13,7 +13,7 @@ export interface StateConfig {
   title: string;
 }
 
-export const STATE_ORDER: StateKey[] = ["CO", "CA", "OR"];
+export const STATE_ORDER: StateKey[] = ["CO", "CA", "OR", "WA"];
 
 export const STATES: Record<StateKey, StateConfig> = {
   CO: {
@@ -49,12 +49,23 @@ export const STATES: Record<StateKey, StateConfig> = {
     spendShareLabel: "% of Total OR Spend",
     title: "Oregon ZIP Code E-Commerce Insights",
   },
+  WA: {
+    key: "WA",
+    code: "WA",
+    name: "Washington",
+    slug: "wa",
+    outlineName: "washington",
+    center: { lat: 47.4, lng: -120.7 },
+    zoom: 7,
+    spendShareLabel: "% of Total WA Spend",
+    title: "Washington ZIP Code E-Commerce Insights",
+  },
 };
 
 const STORAGE_KEY = "keen-mapping-state";
 
 export function isStateKey(value: string | null | undefined): value is StateKey {
-  return value === "CO" || value === "CA" || value === "OR";
+  return value === "CO" || value === "CA" || value === "OR" || value === "WA";
 }
 
 export function readStoredState(): StateKey {

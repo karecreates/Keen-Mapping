@@ -50,7 +50,7 @@ export function PasswordGate({ onSuccess }: PasswordGateProps) {
         <h1 className="password-gate__title">Geographic Insights</h1>
         <p className="password-gate__subtitle">
           Enter the access password to open the ZIP mapping tool for Colorado,
-          California, and Oregon.
+          California, Oregon, and Washington.
         </p>
 
         <form className="password-gate__form" onSubmit={handleSubmit}>

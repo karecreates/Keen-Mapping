@@ -29,7 +29,7 @@ export function MapControls({
     <div className="map-controls">
       <div>
         <p className="control-label">State</p>
-        <div className="segmented segmented--3" role="tablist" aria-label="State">
+        <div className="segmented segmented--states" role="tablist" aria-label="State">
           {STATE_ORDER.map((key) => (
             <button
               key={key}
