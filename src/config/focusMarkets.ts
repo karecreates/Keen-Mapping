@@ -122,7 +122,43 @@ export const FOCUS_MARKETS_BY_STATE: Record<StateKey, MapPin[]> = {
       pinHeight: 28,
     },
   ],
-  WA: [],
+  WA: [
+    {
+      id: "bellevue-square",
+      name: "Bellevue Square",
+      lat: 47.6156024,
+      lng: -122.203819,
+      pinSrc: MARKER,
+    },
+    {
+      id: "university-village",
+      name: "University Village",
+      lat: 47.6615079,
+      lng: -122.2988903,
+      pinSrc: MARKER,
+    },
+    {
+      id: "capitol-hill",
+      name: "Capitol Hill",
+      lat: 47.6164858,
+      lng: -122.3191871,
+      pinSrc: MARKER,
+    },
+    {
+      id: "downtown-seattle",
+      name: "Downtown Seattle",
+      lat: 47.6120381,
+      lng: -122.3376528,
+      pinSrc: MARKER,
+    },
+    {
+      id: "fremont",
+      name: "Fremont",
+      lat: 47.6499232,
+      lng: -122.3510398,
+      pinSrc: MARKER,
+    },
+  ],
 };
 
 /** @deprecated Use FOCUS_MARKETS_BY_STATE.CO */
